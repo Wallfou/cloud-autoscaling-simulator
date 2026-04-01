@@ -1,103 +1,81 @@
 # Cloud Autoscaling Simulator
 
-## Project Scope
+## Team
 
-This project will design and implement a cloud infrastructure simulator that models how distributed server clusters handle incoming workloads.
+This is an individual project by Wa Fan
 
-The proposed project will ideally:
-- Generate incoming client requests using stochastic arrival models
-- Simulate multiple servers handling queued requests
-- Implement load balancing strategies
-- Automatically scale servers up or down based on system load
-- Measure cost vs performance tradeoffs
+## Project overview
 
-The objective is to analyze how different auto-scaling and load balancing policies impact latency, throughput, resource utilization, and operational cost.
+This repository implements a discrete-time simulation of a simplified cloud-style workload: client requests arrive (or are injected), wait in a shared queue, are assigned to servers by a load balancer, and complete after a modeled service time. An auto-scaler adjusts the number of servers based on queue depth and configured thresholds (including a cooldown to limit churn).
 
-## Project Objectives
+The goal is to study how auto-scaling and load-balancing policies affect latency, throughput, utilization, and cost—without needing real infrastructure.
 
-(Individual, since I am working alone)
 
-- Design a modular cloud workload simulation framework.
-- Implement request arrival simulation using Poisson or random distributions.
-- Implement at least two load balancing strategies.
-- Implement dynamic auto-scaling logic (playing around with queue length and utilization)
-- Compare results in terms of response time, request wait time, server utilization, and operational cost (which could be based on server uptime).
-- Produce analysis for different workloads
+## Main functionalities
 
-## Technologies and Tools
+- **Discrete-time simulation** — Configurable tick size and run duration.
+- **Server cluster** — Add/remove servers; each server processes assigned requests over time
+- **Request queue** — FIFO queue between arrivals and dispatch.
+- **Load balancing** — Pluggable strategies via an abstract `LoadBalancer` interface; includes **round-robin** and **least-connections** implementations.
+- **Auto-scaling** — Thresholds for scale-up / scale-down, min/max fleet size, and cooldown. 
+- **Metrics** — Tracks completed requests, aggregate wait/response time, server uptime, and derived averages and throughput.
+- **CLI** — Select balancer and basic simulation parameters from the command line.
 
-**Programming Language:**
-- C++
 
-**Development Tools**
-- GitHub for version control
-- g++ compiler
-- Makefile
-- VS Code
 
-## Project Timeline
+## OOP design summary
 
-### Sprint 1
+| Concept | Role in this project |
+|--------|----------------------|
+| **`Simulator`** | Orchestrates the simulation loop: advances the clock, runs auto-scaling, dispatches the queue through the balancer, updates servers, and aggregates metrics. |
+| **`SimConfig` and `SimMetrics`** | Plain data structures for configuration and aggregated statistics (with small helpers on `SimMetrics`). |
+| **`LoadBalancer`** | Strategy pattern: `selectServer` and `name` are virtual; `RoundRobinBalancer` and `LeastConnectionsBalancer` supply concrete policies. |
+| **`ServerCluster`** | Owns a collection of `Server` instances and supports adding servers for scaling. |
+| **`Server`** | Holds optional work, advances processing per tick, exposes utilization/uptime-style data for metrics. |
+| **`Request` / `RequestQueue`** | Model units of work and a FIFO queue between arrival and assignment. |
+| **`AutoScaler`** | Encapsulates scale-up/scale-down rules and cooldown using cluster + queue state. |
+| **`SimClock`** | Encapsulates simulation time and tick duration. |
 
-Todos:
-- Finalize system architecture
-- Define class structures
-- Implement a discrete-time simulation clock with different tick size
-- Setup Github repo
 
-Milestone: need a functional skeleton system
+## Tools and technologies
 
----
+| Category | Details |
+|----------|---------|
+| **Language** | C++17 |
+| **Build** | `Makefile`, `g++` |
+| **Version control** | Github |
+| **Development** | VSCode |
 
-### Sprint 2
+**Build and run**
 
-Todos:
-- Implement at least two load balancing strategies (need more research to see decide)
-- Integrate strategies into the simulation engine
-- Add request arrival generation (this could be random/Poisson-like)
+```bash
+make          # builds the `simulator` binary
+./simulator --balancer rr --duration 1000 --servers 2
+make clean    # remove build artifacts
+```
 
-Milestone: implementing multi-strategy load balancing system
 
-Deliverable: CLI flag to choose balancer, sample run output
+## Folder structure
 
----
+```
+cloud-autoscaling-simulator/
+├── include/          # Headers (.h) — interfaces and declarations
+├── src/              # Implementation (.cpp) and main entry point
+├── build/            # Object files (created by `make`; gitignored if listed)
+├── Makefile          # Build rules
+└── README.md         # This file
+```
 
-### Sprint 3
 
-Todos:
-- Implement a threshold for scaling up (probably based on queue length or server utilization)
-- Implement a threshold for scaling down
-- Add a cool-down timer to prevent too much oscillation
-- Track server uptime for operational cost calculation
+## Project goals
 
-Milestone: completing cloud simulation
+- Provide a modular simulation core that can swap load-balancing strategies and tune auto-scaling parameters.
+- Compare policies using wait time, response time, throughput, utilization, and (eventually) operational cost.
+- Support repeatable experiments** under different traffic patterns (e.g., low, bursty, sustained high load) as the implementation matures.
+- Deliver a clear codebase and documentation suitable for course or portfolio review.
 
-Deliverable: autoscaling working
 
----
+## GitHub repository purpose
 
-### Sprint 4
+This GitHub repository is the home for source code, revision history, and documentation. It allows instructors, teammates, and reviewers to clone the project, build it with the provided `Makefile`, track changes over time, and inspect design decisions through commits and this README. It also serves as a portfolio artifact demonstrating systems-style C++ and object-oriented design applied to cloud autoscaling concepts.
 
-Todos:
-- Compute necessary data for analysis: response time, waiting time, throughput, server utilization, operational cost
-- Run experiments on low traffic, traffic in bursts, and sustained high traffic scenarios.
-- Compare load balancing strategies and their results to determine the best strategy
-- Export results to csv for plotting
-
-Milestone: Experimental evaluation complete
-
-Deliverable: csv export and comparison plot or tables
-
----
-
-### Sprint 5
-
-Todos:
-- Clean code
-- Add documentation
-- Write the final PDF document to include any necessary information about the project's outcome and process
-- Write the final README file with build instructions and example outputs
-
-Milestone: Polished final product
-
-Deliverable: pdf, readme and clean builds
