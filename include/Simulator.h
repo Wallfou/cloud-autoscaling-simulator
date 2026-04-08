@@ -35,7 +35,11 @@ struct SimMetrics {
 
   double totalWaitTime = 0.0;
   double totalResponseTime = 0.0;
-  double totalUptime = 0.0;
+
+  /// Sum over ticks of (live server count × dt). Used for operational cost (instance-time).
+  double totalProvisionedTime = 0.0;
+  /// Sum of per-server busy time at end of run (processing time).
+  double totalBusyTime = 0.0;
 
   double avgWaitTime() const;
   double avgResponseTime() const;
@@ -56,6 +60,7 @@ private:
   void generateArrivals(double t, double dt);
   void dispatchQueuedRequests();
   void collectMetrics(const std::vector<Request*> &completed);
+  void finalizeResourceMetrics();
 
   SimConfig config_;
   SimClock clock_;

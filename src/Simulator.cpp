@@ -56,9 +56,12 @@ void Simulator::run() {
         clock_.tick();
     }
 
+    finalizeResourceMetrics();
+
     std::cout << "[Simulator] Done. t=" << clock_.getTime()
-              << " completed=" << metrics_.completedRequests
-              << "/" << metrics_.totalRequests << "\n";
+              << " completed = " << metrics_.completedRequests
+              << "/" << metrics_.totalRequests
+              << " servers_final = " << cluster_.size() << "\n";
 }
 
 void Simulator::generateArrivals(double t, double dt) {
@@ -91,6 +94,8 @@ void Simulator::step() {
 
     std::vector<Request*> completed = cluster_.update(t + dt, dt);
     collectMetrics(completed);
+
+    metrics_.totalProvisionedTime += static_cast<double>(cluster_.size()) * dt;
 }
 
 // should loop thru all servers and dispatch requests to available servers
@@ -105,16 +110,20 @@ void Simulator::dispatchQueuedRequests() {
     }
 }
 
-// colelct metrics for all completed requests
 void Simulator::collectMetrics(const std::vector<Request*>& completed) {
     for (Request* r : completed) {
         ++metrics_.completedRequests;
         metrics_.totalWaitTime     += r->getWaitTime();
         metrics_.totalResponseTime += r->getResponseTime();
     }
+}
+
+void Simulator::finalizeResourceMetrics() {
+    double busy = 0.0;
     for (const Server* s : cluster_.getServers()) {
-        metrics_.totalUptime += s->getUptime();
+        busy += s->getUptime();
     }
+    metrics_.totalBusyTime = busy;
 }
 
 const SimMetrics& Simulator::getMetrics() const {

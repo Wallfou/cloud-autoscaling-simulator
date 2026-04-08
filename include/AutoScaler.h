@@ -1,6 +1,6 @@
 #pragma once
-#include "../include/ServerCluster.h"
-#include "../include/RequestQueue.h"
+#include "RequestQueue.h"
+#include "ServerCluster.h"
 
 // should eval cluster state each tick and manage servers if needed
 class AutoScaler {

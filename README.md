@@ -54,9 +54,9 @@ Each type has one clear job. **`Simulator`** runs the loop. **`SimClock`** track
 #### `SimMetrics`
 
 - **What it does:** Running totals for request and time-based stats; computes averages and throughput from those totals.
-- **Data:** `totalRequests`, `completedRequests`, `totalWaitTime`, `totalResponseTime`, `totalUptime`.
+- **Data:** `totalRequests`, `completedRequests`, `totalWaitTime`, `totalResponseTime`, `totalProvisionedTime`, `totalBusyTime`.
 - **Methods:** `avgWaitTime()`, `avgResponseTime()`, `throughput(duration)`.
-- **Talks to:** Gets populated in `Simulator::collectMetrics` from completed `Request` objects and `Server` uptime; `main` reads it after `run()`.
+- **Talks to:** Request totals from `Simulator::collectMetrics`; provisioned time accrued per tick; busy time finalized from `Server::getUptime()` at end of `run()`; `main` prints results.
 - **Why it exists:** Supports the Iteration #3 "metrics collection" requirement and timeline goals (wait, response, throughput, utilization/cost inputs).
 
 #### `SimClock`

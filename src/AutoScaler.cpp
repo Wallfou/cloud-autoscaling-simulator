@@ -10,7 +10,26 @@ AutoScaler::AutoScaler(int scaleUpQueueThreshold, int scaleDownQueueThreshold, d
       lastScaleTime_(-1e9) {}
 
 void AutoScaler::evaluate(ServerCluster& cluster, const RequestQueue& queue, double currentTime) {
-    // todo 
+    if (cooldownPeriod_ > 0.0 && (currentTime - lastScaleTime_) < cooldownPeriod_) {
+        return;
+    }
+
+    const int q = queue.size();
+    const int n = cluster.size();
+    const bool allBusy = (n > 0 && cluster.busyCount() == n);
+    const bool saturated = allBusy && q > 0;
+
+    if ((q >= scaleUpQueueThreshold_ || saturated) && n < maxServers_) {
+        cluster.addServer();
+        lastScaleTime_ = currentTime;
+        return;
+    }
+
+    if (q <= scaleDownQueueThreshold_ && n > minServers_ && cluster.idleCount() > 0) {
+        if (cluster.removeServer()) {
+            lastScaleTime_ = currentTime;
+        }
+    }
 }
 
 int AutoScaler::getScaleUpThreshold() const {

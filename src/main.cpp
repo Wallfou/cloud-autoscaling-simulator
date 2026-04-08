@@ -14,6 +14,11 @@ static void printUsage(const char* prog) {
               << "  --service-min <t>    Min service time per request (default: 1.0)\n"
               << "  --service-max <t>    Max service time per request (default: 5.0)\n"
               << "  --seed <n>           RNG seed (default: 42; use 0 for non-deterministic)\n"
+              << "  --scale-up <n>       Scale out when queue length >= n (default: 5)\n"
+              << "  --scale-down <n>     Scale in when queue length <= n (default: 1)\n"
+              << "  --cooldown <t>       Min time between scaling actions (default: 20)\n"
+              << "  --min-servers <n>    Minimum cluster size (default: 1)\n"
+              << "  --max-servers <n>    Maximum cluster size (default: 10)\n"
               << "  --help               Show this message\n";
 }
 
@@ -42,6 +47,16 @@ int main(int argc, char* argv[]) {
             config.serviceTimeMax = std::stod(argv[++i]);
         } else if (arg == "--seed" && i + 1 < argc) {
             config.randomSeed = static_cast<unsigned>(std::stoul(argv[++i]));
+        } else if (arg == "--scale-up" && i + 1 < argc) {
+            config.scaleUpThresh = std::stoi(argv[++i]);
+        } else if (arg == "--scale-down" && i + 1 < argc) {
+            config.scaleDownThresh = std::stoi(argv[++i]);
+        } else if (arg == "--cooldown" && i + 1 < argc) {
+            config.cooldown = std::stod(argv[++i]);
+        } else if (arg == "--min-servers" && i + 1 < argc) {
+            config.minServers = std::stoi(argv[++i]);
+        } else if (arg == "--max-servers" && i + 1 < argc) {
+            config.maxServers = std::stoi(argv[++i]);
         } else {
             std::cerr << "Unknown argument: " << arg << "\n";
             printUsage(argv[0]);
@@ -65,6 +80,17 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    if (config.minServers < 1 || config.maxServers < config.minServers) {
+        std::cerr << "Invalid server bounds: need 1 <= min servers <= max\n";
+        delete balancer;
+        return 1;
+    }
+    if (config.initialServers < config.minServers || config.initialServers > config.maxServers) {
+        std::cerr << "Initial servers must be between min and max servers\n";
+        delete balancer;
+        return 1;
+    }
+
     Simulator sim(config, balancer);
     sim.run();
 
@@ -74,12 +100,17 @@ int main(int argc, char* argv[]) {
               << "Arrival rate:       " << config.arrivalRate << " req/time\n"
               << "Service time:       U[" << config.serviceTimeMin << ", " << config.serviceTimeMax << "]\n"
               << "Seed:               " << (config.randomSeed == 0u ? std::string("(random)") : std::to_string(config.randomSeed)) << "\n"
+              << "Autoscale:          queue >= " << config.scaleUpThresh << " out, queue <= "
+              << config.scaleDownThresh << " in, cooldown=" << config.cooldown << "\n"
+              << "Server bounds:      [" << config.minServers << ", " << config.maxServers << "]\n"
               << "\n=== Results ===\n"
               << "Total requests:     " << m.totalRequests      << "\n"
               << "Completed requests: " << m.completedRequests   << "\n"
               << "Avg wait time:      " << m.avgWaitTime()        << "\n"
               << "Avg response time:  " << m.avgResponseTime()    << "\n"
-              << "Throughput:         " << m.throughput(config.duration) << " req/time unit\n";
+              << "Throughput:         " << m.throughput(config.duration) << " req/time unit\n"
+              << "Provisioned time:   " << m.totalProvisionedTime << " (operational cost)\n"
+              << "Total busy time:    " << m.totalBusyTime << " (sum of server processing time)\n";
 
     delete balancer;
     return 0;
