@@ -8,6 +8,12 @@
 #include <random>
 #include <vector>
 
+enum class ArrivalMode {
+  Constant,
+  Sine,
+  Burst,
+};
+
 struct SimConfig {
   double tickSize = 1.0;
   double duration = 1000.0;
@@ -19,12 +25,23 @@ struct SimConfig {
   int scaleUpThresh = 5;
   int scaleDownThresh = 1;
   double cooldown = 20.0;
-  /// Time before a new instance can accept requests (scale-out only; 0 = immediate).
   double provisionDelay = 0.0;
 
   // stochastic arrivals, service times
   // req per unit time
   double arrivalRate = 2.0;
+  ArrivalMode arrivalMode = ArrivalMode::Constant;
+  
+  double arrivalPeriod = 200.0;
+  // sine mode: amplitude in [0, 1] keeps rate nonnegative
+  double arrivalVariation = 0.75;
+  
+  // burst mode: alternating high and low windows
+  double burstOnDuration = 20.0;
+  double burstOffDuration = 80.0;
+  double burstPeakMultiplier = 4.0;
+  double burstLowMultiplier = 0.25;
+
   double serviceTimeMin = 1.0;
   double serviceTimeMax = 5.0;
   // cahnge to 0 for non-deterministic seed 
@@ -58,6 +75,7 @@ public:
 private:
   void step();
   void generateArrivals(double t, double dt);
+  double instantaneousArrivalRate(double t) const;
   void dispatchQueuedRequests();
   void collectMetrics(const std::vector<Request*> &completed);
   void finalizeResourceMetrics();

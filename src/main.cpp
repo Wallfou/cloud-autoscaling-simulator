@@ -10,7 +10,14 @@ static void printUsage(const char* prog) {
               << "  --tick <size>        Simulation tick size (default: 1.0)\n"
               << "  --duration <t>       Simulation duration  (default: 1000.0)\n"
               << "  --servers <n>        Initial server count (default: 2)\n"
-              << "  --arrival-rate <λ>   Poisson arrival rate (requests / time; default: 2.0)\n"
+              << "  --arrival-mode <m>   constant | sine | burst (default: constant)\n"
+              << "  --arrival-rate <λ>   Baseline Poisson rate (requests / time; default: 2.0)\n"
+              << "  --arrival-period <t> Sine mode: cycle length in time units (default: 200)\n"
+              << "  --arrival-variation <a> Sine mode: amplitude a in λ*(1+a*sin(...)), use 0..1 (default: 0.75)\n"
+              << "  --burst-on <t>       Burst mode: high-rate window length (default: 20)\n"
+              << "  --burst-off <t>      Burst mode: low-rate window length (default: 80)\n"
+              << "  --burst-peak-mul <m> Burst mode: rate multiplier in on window (default: 4)\n"
+              << "  --burst-low-mul <m>  Burst mode: rate multiplier in off window (default: 0.25)\n"
               << "  --service-min <t>    Min service time per request (default: 1.0)\n"
               << "  --service-max <t>    Max service time per request (default: 5.0)\n"
               << "  --seed <n>           RNG seed (default: 42; use 0 for non-deterministic)\n"
@@ -26,6 +33,7 @@ static void printUsage(const char* prog) {
 int main(int argc, char* argv[]) {
     SimConfig config;
     std::string balancerType = "rr";
+    std::string arrivalModeStr = "constant";
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -40,8 +48,22 @@ int main(int argc, char* argv[]) {
             config.duration = std::stod(argv[++i]);
         } else if (arg == "--servers" && i + 1 < argc) {
             config.initialServers = std::stoi(argv[++i]);
+        } else if (arg == "--arrival-mode" && i + 1 < argc) {
+            arrivalModeStr = argv[++i];
         } else if (arg == "--arrival-rate" && i + 1 < argc) {
             config.arrivalRate = std::stod(argv[++i]);
+        } else if (arg == "--arrival-period" && i + 1 < argc) {
+            config.arrivalPeriod = std::stod(argv[++i]);
+        } else if (arg == "--arrival-variation" && i + 1 < argc) {
+            config.arrivalVariation = std::stod(argv[++i]);
+        } else if (arg == "--burst-on" && i + 1 < argc) {
+            config.burstOnDuration = std::stod(argv[++i]);
+        } else if (arg == "--burst-off" && i + 1 < argc) {
+            config.burstOffDuration = std::stod(argv[++i]);
+        } else if (arg == "--burst-peak-mul" && i + 1 < argc) {
+            config.burstPeakMultiplier = std::stod(argv[++i]);
+        } else if (arg == "--burst-low-mul" && i + 1 < argc) {
+            config.burstLowMultiplier = std::stod(argv[++i]);
         } else if (arg == "--service-min" && i + 1 < argc) {
             config.serviceTimeMin = std::stod(argv[++i]);
         } else if (arg == "--service-max" && i + 1 < argc) {
@@ -99,14 +121,58 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    if (arrivalModeStr == "constant") {
+        config.arrivalMode = ArrivalMode::Constant;
+    } else if (arrivalModeStr == "sine") {
+        config.arrivalMode = ArrivalMode::Sine;
+    } else if (arrivalModeStr == "burst") {
+        config.arrivalMode = ArrivalMode::Burst;
+    } else {
+        std::cerr << "unkonwn arrival mode: " << arrivalModeStr << "\n";
+        delete balancer;
+        return 1;
+    }
+
+    if (config.arrivalMode == ArrivalMode::Sine && config.arrivalPeriod <= 0.0) {
+        std::cerr << "Sine mode requires --arrival-period > 0\n";
+        delete balancer;
+        return 1;
+    }
+    if (config.arrivalMode == ArrivalMode::Burst) {
+        if (config.burstOnDuration < 0.0 || config.burstOffDuration < 0.0) {
+            std::cerr << "Burst mode: --burst-on and --burst-off must be >= 0\n";
+            delete balancer;
+            return 1;
+        }
+        if (config.burstOnDuration + config.burstOffDuration <= 0.0) {
+            std::cerr << "Burst mode: sum of on + off durations must be positive\n";
+            delete balancer;
+            return 1;
+        }
+        if (config.burstPeakMultiplier < 0.0 || config.burstLowMultiplier < 0.0) {
+            std::cerr << "Burst multpliers must be >= 0\n";
+            delete balancer;
+            return 1;
+        }
+    }
+
     Simulator sim(config, balancer);
     sim.run();
 
     const SimMetrics& m = sim.getMetrics();
     std::cout << "\n=== Sample run ===\n"
               << "Balancer:           " << balancer->name() << "\n"
-              << "Arrival rate:       " << config.arrivalRate << " req/time\n"
-              << "Service time:       U[" << config.serviceTimeMin << ", " << config.serviceTimeMax << "]\n"
+              << "Arrival mode:       " << arrivalModeStr << "\n"
+              << "Baseline rate:      " << config.arrivalRate << " req/time\n";
+    if (config.arrivalMode == ArrivalMode::Sine) {
+        std::cout << "Sine period:        " << config.arrivalPeriod
+                  << ", variation: " << config.arrivalVariation << "\n";
+    } else if (config.arrivalMode == ArrivalMode::Burst) {
+        std::cout << "Burst on/off:       " << config.burstOnDuration << " / "
+                  << config.burstOffDuration << ", peak/low mul: "
+                  << config.burstPeakMultiplier << " / " << config.burstLowMultiplier << "\n";
+    }
+    std::cout << "Service time:       U[" << config.serviceTimeMin << ", " << config.serviceTimeMax << "]\n"
               << "Seed:               " << (config.randomSeed == 0u ? std::string("(random)") : std::to_string(config.randomSeed)) << "\n"
               << "Autoscale:          queue >= " << config.scaleUpThresh << " out, queue <= "
               << config.scaleDownThresh << " in, cooldown=" << config.cooldown << "\n"

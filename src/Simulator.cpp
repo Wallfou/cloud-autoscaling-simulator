@@ -1,5 +1,11 @@
 #include "../include/Simulator.h"
+
+#include <cmath>
 #include <iostream>
+
+namespace {
+    double twoPi() { return 2.0 * std::acos(-1.0); }
+}
 
 
 double SimMetrics::avgWaitTime() const {
@@ -50,7 +56,14 @@ void Simulator::run() {
     std::cout << "[Simulator] Starting with balancer: " << balancer_->name()
               << ", tick=" << config_.tickSize
               << ", duration=" << config_.duration
-              << ", servers=" << config_.initialServers << "\n";
+              << ", servers=" << config_.initialServers
+              << ", arrival_mode=";
+    switch (config_.arrivalMode) {
+        case ArrivalMode::Constant: std::cout << "constant"; break;
+        case ArrivalMode::Sine: std::cout << "sine"; break;
+        case ArrivalMode::Burst: std::cout << "burst"; break;
+    }
+    std::cout << "\n";
 
     while (clock_.getTime() < config_.duration) {
         step();
@@ -65,10 +78,37 @@ void Simulator::run() {
               << " servers_final = " << cluster_.size() << "\n";
 }
 
-void Simulator::generateArrivals(double t, double dt) {
-    if (config_.arrivalRate <= 0.0 || dt <= 0.0) return;
+double Simulator::instantaneousArrivalRate(double t) const {
+    switch (config_.arrivalMode) {
+        case ArrivalMode::Constant:
+            return config_.arrivalRate;
+        case ArrivalMode::Sine: {
+            if (config_.arrivalPeriod <= 0.0) return config_.arrivalRate;
+            const double w = twoPi() * t / config_.arrivalPeriod;
+            const double lam = config_.arrivalRate * (1.0 + config_.arrivalVariation * std::sin(w));
+            return std::max(0.0, lam);
+        }
+        case ArrivalMode::Burst: {
+            const double cycle = config_.burstOnDuration + config_.burstOffDuration;
+            if (cycle <= 0.0) return config_.arrivalRate;
+            double pos = std::fmod(t, cycle);
+            if (pos < 0.0) pos += cycle;
+            const bool onBurst = pos < config_.burstOnDuration;
+            const double mul =
+                onBurst ? config_.burstPeakMultiplier : config_.burstLowMultiplier;
+            return std::max(0.0, config_.arrivalRate * mul);
+        }
+    }
+    return config_.arrivalRate;
+}
 
-    const double lambda = config_.arrivalRate * dt;
+void Simulator::generateArrivals(double t, double dt) {
+    if (dt <= 0.0) return;
+
+    const double lambdaInstant = instantaneousArrivalRate(t);
+    if (lambdaInstant <= 0.0) return;
+
+    const double lambda = lambdaInstant * dt;
     std::poisson_distribution<int> numArrivals(lambda);
     const int n = numArrivals(rng_);
 
