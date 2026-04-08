@@ -26,7 +26,8 @@ Simulator::Simulator(const SimConfig& config, LoadBalancer* balancer)
               config.scaleDownThresh,
               config.cooldown,
               config.minServers,
-              config.maxServers),
+              config.maxServers,
+              config.provisionDelay),
       nextRequestId_(0),
       rng_([this]() {
         if (config_.randomSeed != 0u) return config_.randomSeed;
@@ -102,7 +103,7 @@ void Simulator::step() {
 void Simulator::dispatchQueuedRequests() {
     double t = clock_.getTime();
     while (!queue_.empty()) {
-        Server* server = balancer_->selectServer(cluster_.getServers());
+        Server* server = balancer_->selectServer(cluster_.getServers(), t);
         if (!server) break;
 
         Request* req = queue_.dequeue();

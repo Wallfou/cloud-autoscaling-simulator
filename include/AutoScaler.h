@@ -9,7 +9,8 @@ public:
                int scaleDownQueueThreshold,
                double cooldownPeriod,
                int minServers,
-               int maxServers);
+               int maxServers,
+               double provisionDelay);
 
     void evaluate(ServerCluster& cluster, const RequestQueue& queue, double currentTime);
 
@@ -24,6 +25,7 @@ private:
 
     int minServers_;
     int maxServers_;
-    
+    double provisionDelay_;
+
     double lastScaleTime_;
 };

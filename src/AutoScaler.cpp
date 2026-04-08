@@ -1,12 +1,13 @@
 #include "../include/AutoScaler.h"
 
 AutoScaler::AutoScaler(int scaleUpQueueThreshold, int scaleDownQueueThreshold, double cooldownPeriod,
-                       int minServers, int maxServers)
+                       int minServers, int maxServers, double provisionDelay)
     : scaleUpQueueThreshold_(scaleUpQueueThreshold),
       scaleDownQueueThreshold_(scaleDownQueueThreshold),
       cooldownPeriod_(cooldownPeriod),
       minServers_(minServers),
       maxServers_(maxServers),
+      provisionDelay_(provisionDelay),
       lastScaleTime_(-1e9) {}
 
 void AutoScaler::evaluate(ServerCluster& cluster, const RequestQueue& queue, double currentTime) {
@@ -16,11 +17,11 @@ void AutoScaler::evaluate(ServerCluster& cluster, const RequestQueue& queue, dou
 
     const int q = queue.size();
     const int n = cluster.size();
-    const bool allBusy = (n > 0 && cluster.busyCount() == n);
-    const bool saturated = allBusy && q > 0;
+    const bool noCapacity = (n > 0 && cluster.acceptingCount(currentTime) == 0);
+    const bool saturated = noCapacity && q > 0;
 
     if ((q >= scaleUpQueueThreshold_ || saturated) && n < maxServers_) {
-        cluster.addServer();
+        cluster.addServer(currentTime + provisionDelay_);
         lastScaleTime_ = currentTime;
         return;
     }

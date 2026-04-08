@@ -5,9 +5,10 @@
 // representing a server that process requests
 class Server {
 public:
-    explicit Server(int id);
+    explicit Server(int id, double readyTime = 0.0);
 
     bool isBusy() const;
+    bool canAcceptWork(double currentTime) const;
     int getActiveConnections() const;
     int getId() const;
     double getUptime() const;
@@ -25,6 +26,7 @@ public:
 
 private:
     int id_;
+    double readyTime_;
     bool busy_;
     Request* currentRequest_;
     double currentRequestRemainingTime_;

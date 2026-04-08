@@ -7,8 +7,8 @@ ServerCluster::~ServerCluster() {
     }
 }
 
-Server* ServerCluster::addServer() {
-    Server* s = new Server(nextId_++);
+Server* ServerCluster::addServer(double readyTime) {
+    Server* s = new Server(nextId_++, readyTime);
     servers_.push_back(s);
     return s;
 }
@@ -59,4 +59,12 @@ int ServerCluster::idleCount() const {
 
 int ServerCluster::busyCount() const {
     return servers_.size() - idleCount();
+}
+
+int ServerCluster::acceptingCount(double currentTime) const {
+    int count = 0;
+    for (const Server* s : servers_) {
+        if (s->canAcceptWork(currentTime)) ++count;
+    }
+    return count;
 }

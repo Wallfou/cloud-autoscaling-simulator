@@ -9,7 +9,7 @@ public:
     ServerCluster();
     ~ServerCluster();
 
-    Server* addServer();
+    Server* addServer(double readyTime = 0.0);
 
     // should remove the last idle server, for optimization
     bool removeServer();
@@ -21,6 +21,7 @@ public:
     int size() const;
     int idleCount() const;
     int busyCount() const;
+    int acceptingCount(double currentTime) const;
 
     // same as server update method but for the whole cluster, should return all complete reqs from
     // all the servers in the cluster

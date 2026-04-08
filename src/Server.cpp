@@ -1,7 +1,10 @@
 #include "../include/Server.h"
 
-Server::Server(int id)
+#include <cassert>
+
+Server::Server(int id, double readyTime)
     : id_(id),
+      readyTime_(readyTime),
       busy_(false),
       currentRequest_(nullptr),
       currentRequestRemainingTime_(0.0),
@@ -9,6 +12,7 @@ Server::Server(int id)
       requestsProcessed_(0) {}
 
 void Server::assignRequest(Request* request, double currentTime) {
+    assert(canAcceptWork(currentTime));
     busy_ = true;
     currentRequest_ = request;
     currentRequestRemainingTime_ = request->getServiceTime();
@@ -32,6 +36,10 @@ Request* Server::update(double currentTime, double dt) {
 
 bool Server::isBusy() const {
     return busy_;
+}
+
+bool Server::canAcceptWork(double currentTime) const {
+    return currentTime >= readyTime_ && !busy_;
 }
 
 int Server::getActiveConnections() const {

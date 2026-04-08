@@ -19,6 +19,8 @@ struct SimConfig {
   int scaleUpThresh = 5;
   int scaleDownThresh = 1;
   double cooldown = 20.0;
+  /// Time before a new instance can accept requests (scale-out only; 0 = immediate).
+  double provisionDelay = 0.0;
 
   // stochastic arrivals, service times
   // req per unit time
@@ -36,9 +38,7 @@ struct SimMetrics {
   double totalWaitTime = 0.0;
   double totalResponseTime = 0.0;
 
-  /// Sum over ticks of (live server count × dt). Used for operational cost (instance-time).
   double totalProvisionedTime = 0.0;
-  /// Sum of per-server busy time at end of run (processing time).
   double totalBusyTime = 0.0;
 
   double avgWaitTime() const;

@@ -19,6 +19,7 @@ static void printUsage(const char* prog) {
               << "  --cooldown <t>       Min time between scaling actions (default: 20)\n"
               << "  --min-servers <n>    Minimum cluster size (default: 1)\n"
               << "  --max-servers <n>    Maximum cluster size (default: 10)\n"
+              << "  --provision-delay <t> Seconds before a new instance accepts traffic (default: 0)\n"
               << "  --help               Show this message\n";
 }
 
@@ -57,6 +58,8 @@ int main(int argc, char* argv[]) {
             config.minServers = std::stoi(argv[++i]);
         } else if (arg == "--max-servers" && i + 1 < argc) {
             config.maxServers = std::stoi(argv[++i]);
+        } else if (arg == "--provision-delay" && i + 1 < argc) {
+            config.provisionDelay = std::stod(argv[++i]);
         } else {
             std::cerr << "Unknown argument: " << arg << "\n";
             printUsage(argv[0]);
@@ -90,6 +93,11 @@ int main(int argc, char* argv[]) {
         delete balancer;
         return 1;
     }
+    if (config.provisionDelay < 0.0) {
+        std::cerr << "Provision delay must be >= 0\n";
+        delete balancer;
+        return 1;
+    }
 
     Simulator sim(config, balancer);
     sim.run();
@@ -103,6 +111,7 @@ int main(int argc, char* argv[]) {
               << "Autoscale:          queue >= " << config.scaleUpThresh << " out, queue <= "
               << config.scaleDownThresh << " in, cooldown=" << config.cooldown << "\n"
               << "Server bounds:      [" << config.minServers << ", " << config.maxServers << "]\n"
+              << "Provision delay:    " << config.provisionDelay << "\n"
               << "\n=== Results ===\n"
               << "Total requests:     " << m.totalRequests      << "\n"
               << "Completed requests: " << m.completedRequests   << "\n"

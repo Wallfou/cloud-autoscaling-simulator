@@ -9,14 +9,14 @@ class LoadBalancer {
 public:
     virtual ~LoadBalancer() = default;
 
-    virtual Server* selectServer(std::vector<Server*>& servers) = 0;
+    virtual Server* selectServer(std::vector<Server*>& servers, double currentTime) = 0;
     virtual const char* name() const = 0;
 };
 
 class RoundRobinBalancer : public LoadBalancer {
 public:
     RoundRobinBalancer();
-    Server* selectServer(std::vector<Server*>& servers) override;
+    Server* selectServer(std::vector<Server*>& servers, double currentTime) override;
     const char* name() const override;
 
 private:
@@ -25,6 +25,6 @@ private:
 
 class LeastConnectionsBalancer : public LoadBalancer {
 public:
-    Server* selectServer(std::vector<Server*>& servers) override;
+    Server* selectServer(std::vector<Server*>& servers, double currentTime) override;
     const char* name() const override;
 };
