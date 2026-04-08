@@ -46,6 +46,9 @@ struct SimConfig {
   double serviceTimeMax = 5.0;
   // cahnge to 0 for non-deterministic seed 
   unsigned randomSeed = 42;
+
+  /// multiply total provisioned server time by this rate
+  double costPerProvisionedTime = 0.0;
 };
 
 struct SimMetrics {
@@ -57,6 +60,10 @@ struct SimMetrics {
 
   double totalProvisionedTime = 0.0;
   double totalBusyTime = 0.0;
+
+  /// 95th percentile over completed requests
+  double p95WaitTime = 0.0;
+  double p95ResponseTime = 0.0;
 
   double avgWaitTime() const;
   double avgResponseTime() const;
@@ -89,6 +96,8 @@ private:
   SimMetrics metrics_;
   int nextRequestId_;
   std::vector<Request *> allRequests_;
+  std::vector<double> completedWaitSamples_;
+  std::vector<double> completedResponseSamples_;
 
   std::mt19937 rng_;
   std::uniform_real_distribution<double> serviceTimeDist_;

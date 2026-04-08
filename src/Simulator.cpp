@@ -1,10 +1,24 @@
 #include "../include/Simulator.h"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
 namespace {
-    double twoPi() { return 2.0 * std::acos(-1.0); }
+
+double twoPi() {
+    return 2.0 * std::acos(-1.0);
+}
+
+double nearestRankPercentile(std::vector<double> values, double p) {
+    if (values.empty()) return 0.0;
+    std::sort(values.begin(), values.end());
+    const size_t n = values.size();
+    const size_t k = static_cast<size_t>(std::ceil(p * static_cast<double>(n)));
+    const size_t idx = std::min(std::max<size_t>(1, k), n) - 1;
+    return values[idx];
+}
+
 }
 
 
@@ -156,6 +170,8 @@ void Simulator::collectMetrics(const std::vector<Request*>& completed) {
         ++metrics_.completedRequests;
         metrics_.totalWaitTime     += r->getWaitTime();
         metrics_.totalResponseTime += r->getResponseTime();
+        completedWaitSamples_.push_back(r->getWaitTime());
+        completedResponseSamples_.push_back(r->getResponseTime());
     }
 }
 
@@ -165,6 +181,9 @@ void Simulator::finalizeResourceMetrics() {
         busy += s->getUptime();
     }
     metrics_.totalBusyTime = busy;
+
+    metrics_.p95WaitTime = nearestRankPercentile(completedWaitSamples_, 0.95);
+    metrics_.p95ResponseTime = nearestRankPercentile(completedResponseSamples_, 0.95);
 }
 
 const SimMetrics& Simulator::getMetrics() const {

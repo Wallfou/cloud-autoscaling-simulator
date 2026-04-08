@@ -27,6 +27,7 @@ static void printUsage(const char* prog) {
               << "  --min-servers <n>    Minimum cluster size (default: 1)\n"
               << "  --max-servers <n>    Maximum cluster size (default: 10)\n"
               << "  --provision-delay <t> Seconds before a new instance accepts traffic (default: 0)\n"
+              << "  --cost-rate <c>      Cost per server-time unit of provisioned capacity (default: 0 = off)\n"
               << "  --help               Show this message\n";
 }
 
@@ -82,6 +83,8 @@ int main(int argc, char* argv[]) {
             config.maxServers = std::stoi(argv[++i]);
         } else if (arg == "--provision-delay" && i + 1 < argc) {
             config.provisionDelay = std::stod(argv[++i]);
+        } else if (arg == "--cost-rate" && i + 1 < argc) {
+            config.costPerProvisionedTime = std::stod(argv[++i]);
         } else {
             std::cerr << "Unknown argument: " << arg << "\n";
             printUsage(argv[0]);
@@ -120,6 +123,11 @@ int main(int argc, char* argv[]) {
         delete balancer;
         return 1;
     }
+    if (config.costPerProvisionedTime < 0.0) {
+        std::cerr << "Cost rate must be >= 0\n";
+        delete balancer;
+        return 1;
+    }
 
     if (arrivalModeStr == "constant") {
         config.arrivalMode = ArrivalMode::Constant;
@@ -128,7 +136,7 @@ int main(int argc, char* argv[]) {
     } else if (arrivalModeStr == "burst") {
         config.arrivalMode = ArrivalMode::Burst;
     } else {
-        std::cerr << "unkonwn arrival mode: " << arrivalModeStr << "\n";
+        std::cerr << "Unknown arrival mode: " << arrivalModeStr << "\n";
         delete balancer;
         return 1;
     }
@@ -183,9 +191,15 @@ int main(int argc, char* argv[]) {
               << "Completed requests: " << m.completedRequests   << "\n"
               << "Avg wait time:      " << m.avgWaitTime()        << "\n"
               << "Avg response time:  " << m.avgResponseTime()    << "\n"
+              << "p95 wait time:      " << m.p95WaitTime << "\n"
+              << "p95 response time:  " << m.p95ResponseTime << "\n"
               << "Throughput:         " << m.throughput(config.duration) << " req/time unit\n"
-              << "Provisioned time:   " << m.totalProvisionedTime << " (operational cost)\n"
+              << "Provisioned time:   " << m.totalProvisionedTime << "\n"
               << "Total busy time:    " << m.totalBusyTime << " (sum of server processing time)\n";
+    if (config.costPerProvisionedTime > 0.0) {
+        const double estCost = m.totalProvisionedTime * config.costPerProvisionedTime;
+        std::cout << "Estimatedprovision cost: " << estCost  << " cost_rate = " << config.costPerProvisionedTime << "\n";
+    }
 
     delete balancer;
     return 0;
