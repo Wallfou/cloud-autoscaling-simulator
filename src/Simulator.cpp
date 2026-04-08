@@ -184,6 +184,7 @@ void Simulator::finalizeResourceMetrics() {
 
     metrics_.p95WaitTime = nearestRankPercentile(completedWaitSamples_, 0.95);
     metrics_.p95ResponseTime = nearestRankPercentile(completedResponseSamples_, 0.95);
+    metrics_.finalServers = cluster_.size();
 }
 
 const SimMetrics& Simulator::getMetrics() const {

@@ -7,7 +7,7 @@ BUILDDIR := build
 SRCS := $(wildcard $(SRCDIR)/*.cpp)
 OBJS := $(patsubst $(SRCDIR)/%.cpp, $(BUILDDIR)/%.o, $(SRCS))
 
-.PHONY: all clean run
+.PHONY: all clean run week4
 
 all: $(TARGET)
 
@@ -22,6 +22,9 @@ $(BUILDDIR):
 
 run: all
 	./$(TARGET)
+
+week4: all
+	bash experiments/run_week4.sh
 
 clean:
 	rm -rf $(BUILDDIR) $(TARGET)

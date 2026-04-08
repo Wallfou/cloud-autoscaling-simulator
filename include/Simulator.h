@@ -65,6 +65,8 @@ struct SimMetrics {
   double p95WaitTime = 0.0;
   double p95ResponseTime = 0.0;
 
+  int finalServers = 0;
+
   double avgWaitTime() const;
   double avgResponseTime() const;
   double throughput(double duration) const;

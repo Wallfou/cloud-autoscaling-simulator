@@ -1,0 +1,396 @@
+
+######## low constant rr ########
+[Simulator] Starting with balancer: RoundRobin, tick=1, duration=800, servers=2, arrival_mode=constant
+[Simulator] Done. t=800 completed = 633/636 servers_final = 2
+
+=== Sample run ===
+Balancer:           RoundRobin
+Arrival mode:       constant
+Baseline rate:      0.8 req/time
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 5 out, queue <= 1 in, cooldown=20
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     636
+Completed requests: 633
+Avg wait time:      3.07899
+Avg response time:  6.58294
+p95 wait time:      13
+p95 response time:  17
+Throughput:         0.79125 req/time unit
+Provisioned time:   2785
+Total busy time:    315 (sum of server processing time)
+Final servers:      2
+Utilization (busy/provisioned): 0.113106
+Est. provision cost: 2.785 (= provisioned_time * cost_rate=0.001)
+
+######## high constant rr ########
+[Simulator] Starting with balancer: RoundRobin, tick=1, duration=800, servers=2, arrival_mode=constant
+[Simulator] Done. t=800 completed = 2113/3612 servers_final = 10
+
+=== Sample run ===
+Balancer:           RoundRobin
+Arrival mode:       constant
+Baseline rate:      4.5 req/time
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 5 out, queue <= 1 in, cooldown=20
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     3612
+Completed requests: 2113
+Avg wait time:      189.546
+Avg response time:  193.063
+p95 wait time:      312
+p95 response time:  315
+Throughput:         2.64125 req/time unit
+Provisioned time:   7440
+Total busy time:    7440 (sum of server processing time)
+Final servers:      10
+Utilization (busy/provisioned): 1
+Est. provision cost: 7.44 (= provisioned_time * cost_rate=0.001)
+
+######## burst rr ########
+[Simulator] Starting with balancer: RoundRobin, tick=1, duration=800, servers=2, arrival_mode=burst
+[Simulator] Done. t=800 completed = 2031/2038 servers_final = 9
+
+=== Sample run ===
+Balancer:           RoundRobin
+Arrival mode:       burst
+Baseline rate:      2.5 req/time
+Burst on/off:       20 / 80, peak/low mul: 4 / 0.25
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 5 out, queue <= 1 in, cooldown=20
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     2038
+Completed requests: 2031
+Avg wait time:      42.3018
+Avg response time:  45.8562
+p95 wait time:      86
+p95 response time:  89
+Throughput:         2.53875 req/time unit
+Provisioned time:   7379
+Total busy time:    5606 (sum of server processing time)
+Final servers:      9
+Utilization (busy/provisioned): 0.759724
+Est. provision cost: 7.379 (= provisioned_time * cost_rate=0.001)
+
+######## sine rr ########
+[Simulator] Starting with balancer: RoundRobin, tick=1, duration=800, servers=2, arrival_mode=sine
+[Simulator] Done. t=800 completed = 2102/2482 servers_final = 10
+
+=== Sample run ===
+Balancer:           RoundRobin
+Arrival mode:       sine
+Baseline rate:      3 req/time
+Sine period:        150, variation: 0.75
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 5 out, queue <= 1 in, cooldown=20
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     2482
+Completed requests: 2102
+Avg wait time:      91.9719
+Avg response time:  95.501
+p95 wait time:      127
+p95 response time:  131
+Throughput:         2.6275 req/time unit
+Provisioned time:   7432
+Total busy time:    7432 (sum of server processing time)
+Final servers:      10
+Utilization (busy/provisioned): 1
+Est. provision cost: 7.432 (= provisioned_time * cost_rate=0.001)
+
+######## low constant lc ########
+[Simulator] Starting with balancer: LeastConnections, tick=1, duration=800, servers=2, arrival_mode=constant
+[Simulator] Done. t=800 completed = 633/636 servers_final = 2
+
+=== Sample run ===
+Balancer:           LeastConnections
+Arrival mode:       constant
+Baseline rate:      0.8 req/time
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 5 out, queue <= 1 in, cooldown=20
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     636
+Completed requests: 633
+Avg wait time:      3.07899
+Avg response time:  6.58294
+p95 wait time:      13
+p95 response time:  17
+Throughput:         0.79125 req/time unit
+Provisioned time:   2785
+Total busy time:    1160 (sum of server processing time)
+Final servers:      2
+Utilization (busy/provisioned): 0.416517
+Est. provision cost: 2.785 (= provisioned_time * cost_rate=0.001)
+
+######## high constant lc ########
+[Simulator] Starting with balancer: LeastConnections, tick=1, duration=800, servers=2, arrival_mode=constant
+[Simulator] Done. t=800 completed = 2113/3612 servers_final = 10
+
+=== Sample run ===
+Balancer:           LeastConnections
+Arrival mode:       constant
+Baseline rate:      4.5 req/time
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 5 out, queue <= 1 in, cooldown=20
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     3612
+Completed requests: 2113
+Avg wait time:      189.546
+Avg response time:  193.063
+p95 wait time:      312
+p95 response time:  315
+Throughput:         2.64125 req/time unit
+Provisioned time:   7440
+Total busy time:    7440 (sum of server processing time)
+Final servers:      10
+Utilization (busy/provisioned): 1
+Est. provision cost: 7.44 (= provisioned_time * cost_rate=0.001)
+
+######## burst lc ########
+[Simulator] Starting with balancer: LeastConnections, tick=1, duration=800, servers=2, arrival_mode=burst
+[Simulator] Done. t=800 completed = 2031/2038 servers_final = 9
+
+=== Sample run ===
+Balancer:           LeastConnections
+Arrival mode:       burst
+Baseline rate:      2.5 req/time
+Burst on/off:       20 / 80, peak/low mul: 4 / 0.25
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 5 out, queue <= 1 in, cooldown=20
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     2038
+Completed requests: 2031
+Avg wait time:      42.3018
+Avg response time:  45.8562
+p95 wait time:      86
+p95 response time:  89
+Throughput:         2.53875 req/time unit
+Provisioned time:   7379
+Total busy time:    6015 (sum of server processing time)
+Final servers:      9
+Utilization (busy/provisioned): 0.815151
+Est. provision cost: 7.379 (= provisioned_time * cost_rate=0.001)
+
+######## sine lc ########
+[Simulator] Starting with balancer: LeastConnections, tick=1, duration=800, servers=2, arrival_mode=sine
+[Simulator] Done. t=800 completed = 2102/2482 servers_final = 10
+
+=== Sample run ===
+Balancer:           LeastConnections
+Arrival mode:       sine
+Baseline rate:      3 req/time
+Sine period:        150, variation: 0.75
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 5 out, queue <= 1 in, cooldown=20
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     2482
+Completed requests: 2102
+Avg wait time:      91.9719
+Avg response time:  95.501
+p95 wait time:      127
+p95 response time:  131
+Throughput:         2.6275 req/time unit
+Provisioned time:   7432
+Total busy time:    7432 (sum of server processing time)
+Final servers:      10
+Utilization (busy/provisioned): 1
+Est. provision cost: 7.432 (= provisioned_time * cost_rate=0.001)
+
+######## scale aggressive rr ########
+[Simulator] Starting with balancer: RoundRobin, tick=1, duration=800, servers=2, arrival_mode=constant
+[Simulator] Done. t=800 completed = 2151/3612 servers_final = 10
+
+=== Sample run ===
+Balancer:           RoundRobin
+Arrival mode:       constant
+Baseline rate:      4.5 req/time
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 3 out, queue <= 1 in, cooldown=15
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     3612
+Completed requests: 2151
+Avg wait time:      178.631
+Avg response time:  182.149
+p95 wait time:      299
+p95 response time:  303
+Throughput:         2.68875 req/time unit
+Provisioned time:   7580
+Total busy time:    7580 (sum of server processing time)
+Final servers:      10
+Utilization (busy/provisioned): 1
+Est. provision cost: 7.58 (= provisioned_time * cost_rate=0.001)
+
+######## scale conservative rr ########
+[Simulator] Starting with balancer: RoundRobin, tick=1, duration=800, servers=2, arrival_mode=constant
+[Simulator] Done. t=800 completed = 2027/3612 servers_final = 10
+
+=== Sample run ===
+Balancer:           RoundRobin
+Arrival mode:       constant
+Baseline rate:      4.5 req/time
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 10 out, queue <= 2 in, cooldown=30
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     3612
+Completed requests: 2027
+Avg wait time:      210.777
+Avg response time:  214.301
+p95 wait time:      334
+p95 response time:  337
+Throughput:         2.53375 req/time unit
+Provisioned time:   7152
+Total busy time:    7152 (sum of server processing time)
+Final servers:      10
+Utilization (busy/provisioned): 1
+Est. provision cost: 7.152 (= provisioned_time * cost_rate=0.001)
+
+######## scale fast cooldown rr ########
+[Simulator] Starting with balancer: RoundRobin, tick=1, duration=800, servers=2, arrival_mode=constant
+[Simulator] Done. t=800 completed = 2207/3612 servers_final = 10
+
+=== Sample run ===
+Balancer:           RoundRobin
+Arrival mode:       constant
+Baseline rate:      4.5 req/time
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 5 out, queue <= 1 in, cooldown=8
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     3612
+Completed requests: 2207
+Avg wait time:      163.193
+Avg response time:  166.71
+p95 wait time:      285
+p95 response time:  287
+Throughput:         2.75875 req/time unit
+Provisioned time:   7776
+Total busy time:    7776 (sum of server processing time)
+Final servers:      10
+Utilization (busy/provisioned): 1
+Est. provision cost: 7.776 (= provisioned_time * cost_rate=0.001)
+
+######## scale aggressive lc ########
+[Simulator] Starting with balancer: LeastConnections, tick=1, duration=800, servers=2, arrival_mode=constant
+[Simulator] Done. t=800 completed = 2151/3612 servers_final = 10
+
+=== Sample run ===
+Balancer:           LeastConnections
+Arrival mode:       constant
+Baseline rate:      4.5 req/time
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 3 out, queue <= 1 in, cooldown=15
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     3612
+Completed requests: 2151
+Avg wait time:      178.631
+Avg response time:  182.149
+p95 wait time:      299
+p95 response time:  303
+Throughput:         2.68875 req/time unit
+Provisioned time:   7580
+Total busy time:    7580 (sum of server processing time)
+Final servers:      10
+Utilization (busy/provisioned): 1
+Est. provision cost: 7.58 (= provisioned_time * cost_rate=0.001)
+
+######## scale conservative lc ########
+[Simulator] Starting with balancer: LeastConnections, tick=1, duration=800, servers=2, arrival_mode=constant
+[Simulator] Done. t=800 completed = 2027/3612 servers_final = 10
+
+=== Sample run ===
+Balancer:           LeastConnections
+Arrival mode:       constant
+Baseline rate:      4.5 req/time
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 10 out, queue <= 2 in, cooldown=30
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     3612
+Completed requests: 2027
+Avg wait time:      210.777
+Avg response time:  214.301
+p95 wait time:      334
+p95 response time:  337
+Throughput:         2.53375 req/time unit
+Provisioned time:   7152
+Total busy time:    7152 (sum of server processing time)
+Final servers:      10
+Utilization (busy/provisioned): 1
+Est. provision cost: 7.152 (= provisioned_time * cost_rate=0.001)
+
+######## scale fast cooldown lc ########
+[Simulator] Starting with balancer: LeastConnections, tick=1, duration=800, servers=2, arrival_mode=constant
+[Simulator] Done. t=800 completed = 2207/3612 servers_final = 10
+
+=== Sample run ===
+Balancer:           LeastConnections
+Arrival mode:       constant
+Baseline rate:      4.5 req/time
+Service time:       U[1, 5]
+Seed:               42
+Autoscale:          queue >= 5 out, queue <= 1 in, cooldown=8
+Server bounds:      [1, 10]
+Provision delay:    0
+
+=== Results ===
+Total requests:     3612
+Completed requests: 2207
+Avg wait time:      163.193
+Avg response time:  166.71
+p95 wait time:      285
+p95 response time:  287
+Throughput:         2.75875 req/time unit
+Provisioned time:   7776
+Total busy time:    7776 (sum of server processing time)
+Final servers:      10
+Utilization (busy/provisioned): 1
+Est. provision cost: 7.776 (= provisioned_time * cost_rate=0.001)

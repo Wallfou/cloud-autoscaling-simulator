@@ -168,6 +168,7 @@ int main(int argc, char* argv[]) {
     sim.run();
 
     const SimMetrics& m = sim.getMetrics();
+
     std::cout << "\n=== Sample run ===\n"
               << "Balancer:           " << balancer->name() << "\n"
               << "Arrival mode:       " << arrivalModeStr << "\n"
@@ -181,24 +182,31 @@ int main(int argc, char* argv[]) {
                   << config.burstPeakMultiplier << " / " << config.burstLowMultiplier << "\n";
     }
     std::cout << "Service time:       U[" << config.serviceTimeMin << ", " << config.serviceTimeMax << "]\n"
-              << "Seed:               " << (config.randomSeed == 0u ? std::string("(random)") : std::to_string(config.randomSeed)) << "\n"
+              << "Seed:               "
+              << (config.randomSeed == 0u ? std::string("(random)") : std::to_string(config.randomSeed))
+              << "\n"
               << "Autoscale:          queue >= " << config.scaleUpThresh << " out, queue <= "
               << config.scaleDownThresh << " in, cooldown=" << config.cooldown << "\n"
               << "Server bounds:      [" << config.minServers << ", " << config.maxServers << "]\n"
               << "Provision delay:    " << config.provisionDelay << "\n"
               << "\n=== Results ===\n"
-              << "Total requests:     " << m.totalRequests      << "\n"
-              << "Completed requests: " << m.completedRequests   << "\n"
-              << "Avg wait time:      " << m.avgWaitTime()        << "\n"
-              << "Avg response time:  " << m.avgResponseTime()    << "\n"
+              << "Total requests:     " << m.totalRequests << "\n"
+              << "Completed requests: " << m.completedRequests << "\n"
+              << "Avg wait time:      " << m.avgWaitTime() << "\n"
+              << "Avg response time:  " << m.avgResponseTime() << "\n"
               << "p95 wait time:      " << m.p95WaitTime << "\n"
               << "p95 response time:  " << m.p95ResponseTime << "\n"
               << "Throughput:         " << m.throughput(config.duration) << " req/time unit\n"
               << "Provisioned time:   " << m.totalProvisionedTime << "\n"
-              << "Total busy time:    " << m.totalBusyTime << " (sum of server processing time)\n";
+              << "Total busy time:    " << m.totalBusyTime << " (sum of server processing time)\n"
+              << "Final servers:      " << m.finalServers << "\n";
+    if (m.totalProvisionedTime > 0.0) {
+        std::cout << "Utilization (busy/provisioned): " << (m.totalBusyTime / m.totalProvisionedTime) << "\n";
+    }
     if (config.costPerProvisionedTime > 0.0) {
         const double estCost = m.totalProvisionedTime * config.costPerProvisionedTime;
-        std::cout << "Estimatedprovision cost: " << estCost  << " cost_rate = " << config.costPerProvisionedTime << "\n";
+        std::cout << "Est. provision cost: " << estCost
+                  << " (= provisioned_time * cost_rate=" << config.costPerProvisionedTime << ")\n";
     }
 
     delete balancer;
