@@ -6,7 +6,7 @@ This is an individual project by Wa Fan
 
 ## Project overview
 
-This repo is a discrete-time simulation of a simplified cloud workload. Requests arrive as a Poisson process (per tick), draw a random service time, sit in a shared FIFO queue, and get dispatched to servers by a load balancer. An auto-scaler watches the queue and cluster capacity and adjusts fleet size (with a cooldown so it doesn't thrash). New instances can optionally **provision** for a configurable delay before they accept traffic, similar to real cloud boot time.
+This repo is a discrete-time simulation of a simplified cloud workload. Requests arrive as a Poisson process whose instantaneous rate can vary in time (`constant`, smooth sine cycles, or rectangular burst high/low windows—chosen via CLI). Each arrival draws a random service time, sits in a shared FIFO queue, and gets dispatched by a load balancer. An auto-scaler watches the queue and cluster capacity and adjusts fleet size (with a cooldown so it doesn't thrash). New instances can optionally provision for a configurable delay before they accept traffic, similar to real cloud boot time.
 
 The point is to study how different auto-scaling and load-balancing setups affect things like latency, throughput, utilization, and cost — without needing actual infrastructure.
 
@@ -15,7 +15,7 @@ More detail on the architecture and milestones is in `Iteration #3.pdf` and `Pro
 ## What it does
 
 - Runs in fixed time steps — you set tick size and total duration.
-- **Stochastic workload** — Poisson arrivals at a configurable rate; service times uniform in `[service-min, service-max]`; optional RNG seed for repeatable runs.
+- **Stochastic workload** — Poisson arrivals per tick with baseline `--arrival-rate`; mode `--arrival-mode` selects constant (fixed rate), sine (rate modulated by a sinusoid over `--arrival-period`), or burst (high/low multipliers over `--burst-on` / `--burst-off` windows). Service times uniform in `[service-min, service-max]`; RNG seed for repeatable runs.
 - Keeps a cluster of servers (grows/shrinks dynamically) and a FIFO request queue.
 - Two balancer modes from the CLI: round-robin (`rr`) and least-connections (`lc`).
 - **Scale-out provisioning** — optional `--provision-delay`: new servers join the fleet immediately for billing/capacity counting but cannot receive requests until ready.
@@ -30,7 +30,7 @@ Each type has one clear job. **`Simulator`** runs the loop. **`SimClock`** track
 
 | Class name | Responsibility | Interacts with | Reason |
 |------------|----------------|----------------|--------|
-| **`SimConfig`** | Stores run-time parameters (tick, duration, arrivals, service-time range, seed, server bounds, scaling thresholds, cooldown, provision delay). | Passed into `Simulator`, `SimClock`, `AutoScaler`. | Keeps tunable settings in one place so experiments just change config, not scattered constants. |
+| **`SimConfig`** | Stores run-time parameters (tick, duration, arrival mode and related sine/burst fields, baseline rate, service-time range, seed, server bounds, scaling thresholds, cooldown, provision delay). | Passed into `Simulator`, `SimClock`, `AutoScaler`. | Keeps tunable settings in one place so experiments just change config, not scattered constants. |
 | **`SimMetrics`** | Accumulates totals, exposes averages and throughput for completed work. | Filled by `Simulator` using `Request` and `Server` data; `main` reads it for output. | Keeps measurement separate from simulation logic — makes reporting and comparison cleaner. |
 | **`SimClock`** | Tracks simulation time and tick length; steps time forward. | `Simulator` calls it every tick; time gets passed into server updates and scaling. | Everything needs to agree on "now" and step size (see Iteration #3 clock spec). |
 | **`Request`** | One unit of work — has an ID, arrival time, service duration, and timing fields for wait/response. | `Simulator` creates them; they sit in `RequestQueue` and get processed by `Server`; metrics read the completion fields. | Can't measure latency or compare runs without it. |
@@ -47,8 +47,8 @@ Each type has one clear job. **`Simulator`** runs the loop. **`SimClock`** track
 
 #### `SimConfig`
 
-- **What it does:** Bundles all user-facing sim parameters — time step, run length, arrival and service-time model, RNG seed, initial/min/max servers, scale-up/scale-down queue thresholds, cooldown, scale-out provisioning delay.
-- **Data:** `tickSize`, `duration`, `initialServers`, `minServers`, `maxServers`, `scaleUpThresh`, `scaleDownThresh`, `cooldown`, `provisionDelay`, `arrivalRate`, `serviceTimeMin`, `serviceTimeMax`, `randomSeed`.
+- **What it does:** Bundles all user-facing sim parameters — time step, run length, arrival mode (`ArrivalMode`: constant / sine / burst) and parameters for each, baseline `arrivalRate`, service-time model, RNG seed, initial/min/max servers, scale thresholds, cooldown, provision delay.
+- **Data:** Declared in `Simulator.h` — includes `ArrivalMode`, baseline `arrivalRate`, sine parameters, burst window lengths and multipliers, plus tick/duration/servers/scaling/service/seed fields
 - **Methods:** Just a struct with default member init; consumed as a const blob when constructing `Simulator`.
 - **Talks to:** `Simulator` (stored as `config_`), and indirectly drives `SimClock`, `AutoScaler`, and the starting `ServerCluster` size.
 - **Why it exists:** Matches the Project Scope idea of comparing policies under different settings without editing multiple files.
@@ -129,7 +129,7 @@ Each type has one clear job. **`Simulator`** runs the loop. **`SimClock`** track
 
 - **What it does:** Owns the full simulation lifecycle — builds the cluster from config, runs until duration, and each tick generates arrivals, evaluates the scaler, dispatches the queue through the balancer (passing simulation time), advances the cluster, and updates metrics. At end of `run`, finalizes busy-time totals from server uptime. Manages `Request` heap ownership via `allRequests_`.
 - **Data:** `config_`, `clock_`, `queue_`, `cluster_`, `balancer_`, `scaler_`, `metrics_`, `nextRequestId_`, `allRequests_`, RNG + service-time distribution.
-- **Methods:** `run`, `getMetrics`, `getCurrentTime`; private helpers `step`, `generateArrivals`, `dispatchQueuedRequests`, `collectMetrics`, `finalizeResourceMetrics`.
+- **Methods:** `run`, `getMetrics`, `getCurrentTime`; private helpers `step`, `generateArrivals`, `instantaneousArrivalRate`, `dispatchQueuedRequests`, `collectMetrics`, `finalizeResourceMetrics`.
 - **Talks to:** Everything; `main` supplies the `LoadBalancer` and `SimConfig`.
 - **Why it exists:** It's the façade that turns separate classes into the full system from Iteration #3's INPUT / PROCESS / OUTPUT diagram.
 
@@ -137,7 +137,7 @@ Each type has one clear job. **`Simulator`** runs the loop. **`SimClock`** track
 ## Main functionalities
 
 - **Discrete-time simulation** — Configurable tick size and run duration.
-- **Stochastic arrivals and service** — Poisson arrivals; uniform service times; seed for repeatability.
+- **Stochastic arrivals and service** — Poisson arrivals with optional sine or burst rate patterns; uniform service times; seed for repeatability
 - **Server cluster** — Add/remove servers; each processes one assigned request at a time; optional provisioning delay for new instances.
 - **Request queue** — FIFO buffer between arrivals and dispatch.
 - **Load balancing** — Pluggable strategies via `LoadBalancer`; round-robin and least-connections (both respect ready time).
@@ -185,7 +185,12 @@ make clean    # remove build artifacts
 | `--tick <size>` | Simulation time step | `1.0` |
 | `--duration <t>` | Run length (time units) | `1000.0` |
 | `--servers <n>` | Initial server count | `2` |
-| `--arrival-rate <λ>` | Poisson rate (requests per time unit) | `2.0` |
+| `--arrival-mode` | `constant`, `sine`, or `burst` | `constant` |
+| `--arrival-rate <λ>` | Baseline Poisson rate (requests per time unit); scaled by mode | `2.0` |
+| `--arrival-period <t>` | Sine: full cycle length; rate ∝ `1 + arrivalVariation·sin(2πt/period)` | `200` |
+| `--arrival-variation <a>` | Sine: amplitude `a` in that formula (use ≤ 1 to avoid clamping to 0) | `0.75` |
+| `--burst-on <t>`, `--burst-off <t>` | Burst: duration of high- vs low-rate windows | `20`, `80` |
+| `--burst-peak-mul <m>`, `--burst-low-mul <m>` | Burst: multiply baseline rate in on vs off window | `4`, `0.25` |
 | `--service-min <t>`, `--service-max <t>` | Uniform service time range | `1.0`, `5.0` |
 | `--seed <n>` | RNG seed (`0` = non-deterministic) | `42` |
 | `--scale-up <n>` | Scale out when queue length ≥ *n* | `5` |
@@ -194,10 +199,11 @@ make clean    # remove build artifacts
 | `--min-servers <n>`, `--max-servers <n>` | Fleet size bounds | `1`, `10` |
 | `--provision-delay <t>` | Time before a **new** instance accepts traffic | `0` |
 
-Example with provisioning delay and heavier load:
+Examples:
 
 ```bash
 ./simulator --balancer lc --duration 500 --arrival-rate 4 --scale-up 3 --provision-delay 15 --seed 42
+./simulator --arrival-mode burst --burst-on 15 --burst-off 60 --arrival-rate 3 --duration 800 --seed 1
 ```
 
 
@@ -217,7 +223,7 @@ cloud-autoscaling-simulator/
 
 - Build a modular simulation core where you can swap load-balancing strategies and tune auto-scaling parameters without major rewrites.
 - Compare policies on wait time, response time, throughput, utilization, and eventually operational cost.
-- Support repeatable experiments under different traffic patterns (low, bursty, sustained high) as the implementation matures.
+- Support repeatable experiments under different traffic patterns via CLI (constant, sine, burst).
 - Keep the codebase and docs clean enough for course or portfolio review.
 
 
