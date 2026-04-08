@@ -13,8 +13,6 @@ public:
     virtual const char* name() const = 0;
 };
 
-// these aren't implemented yet : 
-
 class RoundRobinBalancer : public LoadBalancer {
 public:
     RoundRobinBalancer();
