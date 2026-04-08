@@ -8,6 +8,7 @@ public:
     explicit Server(int id);
 
     bool isBusy() const;
+    int getActiveConnections() const;
     int getId() const;
     double getUptime() const;
 

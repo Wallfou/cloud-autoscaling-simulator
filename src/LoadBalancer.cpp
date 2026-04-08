@@ -1,4 +1,5 @@
 #include "../include/LoadBalancer.h"
+#include <limits>
 
 RoundRobinBalancer::RoundRobinBalancer() : lastIndex_(-1) {}
 
@@ -21,11 +22,22 @@ const char* RoundRobinBalancer::name() const {
 }
 
 Server* LeastConnectionsBalancer::selectServer(std::vector<Server*>& servers) {
+    if (servers.empty()) return nullptr;
+
     Server* best = nullptr;
+    int minConn = std::numeric_limits<int>::max();
+    int bestId = std::numeric_limits<int>::max();
+
     for (Server* s : servers) {
-        if (s->isBusy()) continue;
-        if (!best || s->getId() < best->getId()) best = s;
+        const int c = s->getActiveConnections();
+        if (c < minConn || (c == minConn && s->getId() < bestId)) {
+            minConn = c;
+            bestId = s->getId();
+            best = s;
+        }
     }
+
+    if (!best || minConn > 0) return nullptr;
     return best;
 }
 

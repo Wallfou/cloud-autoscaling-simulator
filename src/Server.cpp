@@ -34,6 +34,10 @@ bool Server::isBusy() const {
     return busy_;
 }
 
+int Server::getActiveConnections() const {
+    return busy_ ? 1 : 0;
+}
+
 int Server::getId() const {
     return id_;
 }
