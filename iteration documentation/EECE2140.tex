@@ -321,7 +321,7 @@
 
 \begin{infocard}{\faLightbulb\enspace Project Description}
 The \textbf{Cloud Autoscaling Simulator} is a \cpp{} program that models a
-simplified cloud-style workload in \emph{discrete time}.
+cloud workload in \emph{discrete time}.
 Requests arrive as a Poisson process whose rate can stay constant or vary
 over time (smooth sine cycles or alternating burst windows).
 Each request waits in a shared FIFO queue, is dispatched by a pluggable
@@ -330,24 +330,22 @@ random service time.
 An \code{AutoScaler} grows or shrinks the fleet using queue-depth thresholds,
 cooldown, and optional \emph{provisioning delay} before new instances accept work.
 The program reports latency, throughput, utilization-related busy time, and
-provisioned server-time so different policies can be compared without real
-infrastructure.
+provisioned server-time so different policies can be compared without using
+real infrastructure.
 \end{infocard}
 
 \subsection{Motivation}
 
 Cloud autoscaling is a core problem in modern infrastructure.
-Understanding how servers dynamically respond to changing demand connects
-directly to how platforms such as AWS, Azure, and GCP operate at scale,
-so this project is grounded in a real systems problem rather than a purely
-academic one.
-It also came from a personal interest in distributed systems.
-Building the simulation from scratch made it easier to understand queueing,
-resource allocation, and server coordination at a deeper level than simply
-reading about them.
-The project was also a strong fit for object-oriented design, since clocks,
-queues, servers, balancers, and scalers naturally map to separate components
-with clear responsibilities.
+Understanding how servers respond to changing demand connects directly to how
+platforms such as AWS, Azure, and GCP operate at scale, so this project is
+based on a real systems problem, not just an academic exercise.
+It also came from my interest in distributed systems.
+Building the simulation from scratch helped me understand queueing,
+resource allocation, and server coordination better than only reading about them.
+The project also fit well with object-oriented design, since parts like the
+clock, queue, servers, balancers, and scaler could be split into separate
+components with clear roles.
 
 \subsection{Project Goals}
 
@@ -450,7 +448,7 @@ $[\texttt{serviceTimeMin},\texttt{serviceTimeMax}]$.
 \medskip\noindent
 \textbf{Input:}  \code{SimConfig} fields for rate, mode, tick, seed. \\
 \textbf{Output:} New \code{Request} pointers enqueued on \code{RequestQueue}. \\
-\textbf{Contribution:} Supplies variable load so queueing, balancing, and scaling actually matter.
+\textbf{Contribution:} Provides variable load so queueing, balancing, and scaling matter.
 \end{funccard}
 
 \begin{funccard}{\faInbox\enspace F2 — FIFO request queue}
@@ -463,7 +461,7 @@ length; the simulator drains it when assigning work.
 \medskip\noindent
 \textbf{Input:}  Pointers to heap-allocated \code{Request} objects. \\
 \textbf{Output:} Ordered backlog; length signal for scaling. \\
-\textbf{Contribution:} Models waiting work and connects traffic to scaling decisions.
+\textbf{Contribution:} Models waiting work and ties traffic to scaling decisions.
 \end{funccard}
 
 \begin{funccard}{\faServer\enspace F3 — Servers and cluster}
@@ -497,7 +495,7 @@ fields; estimated cost is only computed when printing in \texttt{main}.
 \medskip\noindent
 \textbf{Input:}  Cluster and queue snapshots each tick; user flags from the CLI. \\
 \textbf{Output:} Dispatch decisions, scale events, and end-of-run statistics. \\
-\textbf{Contribution:} Connects policy settings to measurable outcomes.
+\textbf{Contribution:} Turns policy choices into measurable outcomes.
 \end{funccard}
 
 % ══════════════════════════════════════════════════════════════════════════════
@@ -685,7 +683,7 @@ data.
     arrival patterns.
   \item \textbf{Ownership model:} The simulator owns the lifecycle of requests
     it allocates while the queue and servers hold non-owning pointers, which
-    keeps responsibilities explicit.
+    makes the responsibilities clear.
 \end{itemize}
 \end{reqbox}
 
@@ -695,7 +693,7 @@ data.
 
 \subsection{High-Level Description}
 
-The simulator follows a classical \textbf{Input $\to$ Process $\to$ Output}
+The simulator follows a basic \textbf{Input $\to$ Process $\to$ Output}
 model. Inputs are mostly supplied at startup through \texttt{main}'s
 command-line flags (stored in \code{SimConfig}); the process is a discrete
 time-stepped loop inside \code{Simulator::run}; outputs are printed after the
@@ -852,7 +850,7 @@ void Simulator::step() {
 \begin{enumerate}[label=\textcolor{NURed}{\textbf{D\arabic*.}}, leftmargin=2em]
   \item \textbf{Strategy object for balancing:}
     \code{Simulator} stores a \code{LoadBalancer*} so the same stepping code runs
-    with different stategies by swapping the concrete object in
+    with different strategies by swapping the concrete object in
     \texttt{main}.
   \item \textbf{Effective capacity in scaling:}
     The scaler checks how many servers \emph{can accept work now}, not only
@@ -860,7 +858,7 @@ void Simulator::step() {
     new instances are not ready yet.
   \item \textbf{Struct configuration:}
     \code{SimConfig} bundles command line parameters in one place, which keeps
-    the experiment setup small and readable.
+    the experiment setup compact and readable.
   \item \textbf{Metrics separated from control flow:}
     \code{SimMetrics} holds counters and derived statistics while the simulator
     focuses on orchestration and state updates.
@@ -964,27 +962,27 @@ void Simulator::step() {
 
 \subsection{Result Discussion}
 
-The Fast Cooldown policy performed best overall.
+The Fast Cooldown policy gave the best performance overall.
 It completed the most requests, had the lowest average wait time, and produced
 the highest throughput.
-That improvement came at the highest cost, since faster reactions allowed the
-cluster to spin up capacity more often and accumulate more provisioned time.
+That improvement also came with the highest cost, since faster reactions allowed
+the cluster to spin up capacity more often and accumulate more provisioned time.
 
-The Conservative policy was the cheapest, but it also had the worst
+The Conservative policy was the cheapest, but it also had the weakest
 performance.
 Because it waited for the queue to grow larger before scaling out, requests
 spent longer waiting and fewer requests completed during the run.
 
-The Aggressive policy improved over the default by reacting earlier to
-queue buildup, while the Default policy generally fell between
-aggressive and conservative on all metrics.
+The Aggressive policy improved on the default by reacting earlier to
+queue buildup, while the Default policy stayed between
+aggressive and conservative on the main metrics.
 
 \subsection{Arrival Pattern Behavior}
 
 Across constant, sine, and burst arrival modes, the simulator showed that
-threshold-based autoscaling is fundamentally reactive.
+threshold-based autoscaling is reactive.
 Queue depth often rises first, then the cluster catches up after scale-out.
-This lag is especially visible under sin shaped traffic and burst windows,
+This lag is especially visible under sine shaped traffic and burst windows,
 where demand changes more quickly than the autoscaler can respond.
 Cooldown helps prevent oscillation, but it also makes it harder for the system
 to instantly match rapid workload changes.
